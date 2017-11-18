@@ -154,6 +154,14 @@ Data Flow:
 	Once the program is entered a specific input is required to attempt the next stage. In-depth analysis is need to understand what
 	is being done. 
 
+	Solution for user name = "jguidry"
+	--------------------------------------------------------
+	Stage 1: swordfish
+	Stage 2: jguidry
+	Stage 3: 1784 or greater ( with user name length of 7 )
+	Stage 4: 107 215 431 863 1729 ( with first letter of 'j' or 106 )
+	Stage 5: Unknown
+
 Communication Protocol:
 	<Discuss any custom communication protocol you have used including the various request and responses that may be sent and received.>
 	No custom protocol is being used. 
