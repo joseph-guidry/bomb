@@ -12,14 +12,14 @@ Project Goals:
 
 Considerations:
 	<A bulleted list of considerations and conditions which affected the design of your project>
-	- Disassemble the bomb executable with odjdump, getting output for the code and read-only segements of the program.
+	- Disassemble the bomb executable with odjdump, getting output for the code and read-only segments of the program.
 	- Determine what is being done at the assembly level to enter the phrase needed to move to the next stage.
 	- Clearly document the steps taken to achieve any success.
 
 Initial Design:
 	<A paragraph or more that adequately describes your program's structure and layout discussing the various modules (.c and corresponding .h files) that you implemented>
 
-	Prior to Stage 1:
+	This is part of the project to discover the program design.
 	- Disassemble bomb into bomb.output - contains assembly instructions used.
 							bomb.rodata - contains the read-only data, such as strings used in the program
 
@@ -31,7 +31,7 @@ Initial Design:
 	Stage 1:
 	===============================================================================================================================
 	- After looking through the read-only data. A few of the strings seemed to standout. The beginning section of the 
-	 memory adddresses 0x401820 thru 0x4018f7, are strings that are found in the bomb.c file. 
+	 memory addresses 0x401820 through 0x4018f7, are strings that are found in the bomb.c file. 
 
 	The strings, starting at address 0x4018f8, "swordfish" is next. Without further inspection, I attempted this string as the first
 	password, and it was successful and proceeded to Stage 2.
@@ -41,7 +41,7 @@ Initial Design:
 	===============================================================================================================================
 	With the success of the first string, I attempted to investigate the next string "USER". 
 	In the bomb.output, starting at memory address 0x400ea7, the program updates the stack pointer, and moves the address 0x401902,
-	this is the string "USER", into the EDI register, and calls the getenv().  The return value is the username for whoever is 
+	this is the string "USER", into the EDI register, and calls the getenv().  The return value is the user name for whoever is 
 	logged in.  
 	
 	  400eaf:	mov    QWORD PTR [rbp-0x8],rdi
@@ -65,7 +65,7 @@ Initial Design:
 	===============================================================================================================================
 	Noticed a few complex shifts in how input was being used to compare the end result.
 
-	The call to strncat, 0x400f12, puts the number entered appended by the username "jguidry", and the call to strlen, 0x400f1e, 
+	The call to strncat, 0x400f12, puts the number entered appended by the user name "jguidry", and the call to strlen, 0x400f1e, 
 	returns the value that is used in the final comparison.  The call to sscanf, 0x400f43, converts the input to an number, and 
 	begins a series of calculations. 
 
@@ -78,9 +78,9 @@ Initial Design:
 	===============================================================================================================================
 	The clue used for input was the function, sscanf(), which requires the string, "%u %u %u %u %u" from read-only data. 
 	Thus indicating the need for five unsigned integers. The half portion of the code, gathers the input for the sscanf(), indicating
-	by the cmp of the return value to 0x5 at memory address, 0x40100d, which will jump to an exit if not satisfied.
+	by the compare of the return value to 0x5 at memory address, 0x40100d, which will jump to an exit if not satisfied.
 
-	If successful, at address 0x401019, the program enters a FOR loop, which initializes the variable to 0, and jumps to the condional
+	If successful, at address 0x401019, the program enters a FOR loop, which initializes the variable to 0, and jumps to the conditional
 	at address, 0x401049. If condition is not meet, 0x4, the program will jump to 0x401023. In the body of the FOR loop:
 
 	  401023: mov    rax,QWORD PTR [rbp-0x38]			# Move 0 into RAX
@@ -101,24 +101,24 @@ Initial Design:
 	  40104e: jbe    401023 <stage_4+0x8e>
 
 	This sequence of additions were troublesome, until the structure of a FOR loop was clear. This sequence iterates the entry into
-	the value which starts with the integer value of the first letter of the USER name (jguidry). Once the loop has exited succesfully.
+	the value which starts with the integer value of the first letter of the USER name (jguidry). Once the loop has exited successfully.
 	The last entry is used to 
 
 	  401050:	mov    ebx,DWORD PTR [rbp-0x3c]			# Moves the last entry into EBX.
-	  401053:	mov    rax,QWORD PTR [rip+0x2010ce]     # Loads the username "jguidry" into RAX.
+	  401053:	mov    rax,QWORD PTR [rip+0x2010ce]     # Loads the user name "jguidry" into RAX.
 	  40105a:	mov    rdi,rax
 	  40105d:	call   400880 <strlen@plt>
 	  401062:	mov    rcx,rax							# The return value stored in RAX ( jguidry = 7 ).
 	  401065:	mov    rax,rbx
 	  401068:	mov    edx,0x0
-	  40106d:	div    rcx								# Divides the last entry by the length of the username
+	  40106d:	div    rcx								# Divides the last entry by the length of the user name
 	  401070:	mov    rax,rdx							# Moves the remainder portion into RAX. 
 	  401073:	test   rax,rax							
 	  401076:	sete   al								# If the test results in setting the ZF = 0, then SETE will put 1 in register al
 													# which is used as the return value for this function.
 
 	This last section deviates from how the other numbers were calculated, which requires that the last entry is both, double the value
-	plus 1, and divisible by the length of the username(7). 
+	plus 1, and divisible by the length of the user name(7). 
 
 	For Stage 4, my values required starting with a value higher than 106 ('j') and the last entry is divisible by 7 ( strlen("jguidry") = 7)
 	- 107, 215, 431, 863, 1729.
@@ -138,22 +138,20 @@ Initial Design:
 	  40111b:	movsx  eax,al
 	  40111e:	sub    eax,0x61								subtract to get the integer value past 'a'
 	  401121:	cmp    eax,0x19								if less than 25 == lower case letter
-	  401124:	ja     4011ff <stage_5+0x16c>				# invalid username value
+	  401124:	ja     4011ff <stage_5+0x16c>				# invalid user name value
 	  40112a:	mov    eax,eax
 	  40112c:	mov    rax,QWORD PTR [rax*8+0x401928]		# These are offsets in the read-only data
 	  401134:	jmp    rax
 	
 	The instruction for the next jump address, is used by the offset of the letter in the USER name, in the read-only section.
-	The jumps vary based on the lower case decimal value of the username, this is calculated during a FOR loop as it iterates through
+	The jumps vary based on the lower case decimal value of the user name, this is calculated during a FOR loop as it iterates through
 	each character. 
 
-	- TO BE CONTINUED!!!
-	
 
 Data Flow:
 	<A paragraph or longer describing the data flow of the program in a sequential manner.  Include a diagram when necessary.>
 	The data in this project is develop to be a progressively challenging puzzle to reverse engineer functions used based on the input give.
-	Once the program is entered a specifc input is required to attempt the next stage. In-depth analysis is need to understand what
+	Once the program is entered a specific input is required to attempt the next stage. In-depth analysis is need to understand what
 	is being done. 
 
 Communication Protocol:
@@ -163,7 +161,7 @@ Communication Protocol:
 Potential Pitfalls:
 	<Discuss any potential issues that you might run into while creating the project>
 	- New to the use of GDB.
-	- Easy to become overwelmed by constant checking of registers at each step, to ensure correct output.
+	- Easy to become overwhelmed by constant checking of registers at each step, to ensure correct output.
 	- Losing track of registers through multiple iteration of FOR loop.
 
 Test Plan:
@@ -172,7 +170,7 @@ Test Plan:
 		Stage 1:
 			- Check read-only data, determine the reason for each string.
 		Stage 2:
-			- Continue with use of avaible string, especially if they are used by any function calls.
+			- Continue with use of available string, especially if they are used by any function calls.
 		Stage 3: 
 			- Continue with string manipulation.
 			- With use of unsigned int, begin brute force to find a number that will work.
@@ -182,12 +180,14 @@ Test Plan:
 	Test Cases:
 		<A brief overview of the test cases that you implemented.>
 		-use any single word strings
-		-look at function calls within stage funciton
+		-look at function calls within stage function
 		-attempt to rebuild construct of function.
 
 Conclusion:
 	<A review of the project, what worked, what didn’t and how to improve upon your project in the future.>
-	I found this project to exceptable in that the difficulty managed to exceed my experience early in the stages. 
+	I found this project to enjoyable in that the difficulty managed to exceed my experience early in the stages. 
+	The examples during the instruction period were most helpful.  This area of self-study will need more work to continue
+	with getting comfortable with doing this type of work at a reasonable pace.
 
 
 
